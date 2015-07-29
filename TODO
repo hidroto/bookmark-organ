@@ -1,0 +1,12 @@
+- check for validity of links when added
+- detect duplicates at once
+- flags/tags/labels
+- good syncing abilities (from chromium/firefox/opera to dropbox and to git)
+- import/export abilities
+- manual descriptor
+- open bookmark in mutiple clients/browsers.
+- search
+- smart descriptor (get it from web page)
+    plugins discripe the tags and other infomation that the bookmark will
+    get this allows a youtube bookmark to have the name of the uploader
+    added to the tag list or as a label.
