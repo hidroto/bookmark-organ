@@ -60,6 +60,7 @@ sub main {
         -until  => $QUIT,
     );
     my %command_hash = (
+        add    => \&add,
     );
 MAIN_LOOP:
     while ( my $input = prompt(%prompt_options) ) {
@@ -78,6 +79,36 @@ MAIN_LOOP:
     }
 
     $bookmark_db->disconnect();
+    return;
+}
+
+sub add {
+    my $uri = shift;
+    if ( not defined $uri ) {
+        $uri = prompt( -prompt => 'uri >>' );
+    }
+    my $title;
+    my $description;
+    my $tags_ref;
+TEST_PLUGIN:
+    for my $plugin (@plugin_subs) {
+        if ( &{$plugin}( $uri, 0 ) ) {    #check if plugin accpets this uri
+                #if so set $title,@tags,$description
+                #to the values returned by the plugin
+            ( $title, $description, $tags_ref ) = &{$plugin}($uri);
+            last TEST_PLUGIN;
+        }
+    }
+
+    #allow user to edit the plugins results
+    #
+    $title       = Complete( 'title >>',       [$title] );
+    $description = Complete( 'description >>', [$description] );
+    my $tag_prompt = $EMPTY;
+    if ( defined $tags_ref ) {
+        $tag_prompt = join ', ', @{$tags_ref};
+    }
+    @{$tags_ref} = split m{[ ]*,[ ]*}, Complete( 'tags >>', [$tag_prompt] );
     return;
 }
 
