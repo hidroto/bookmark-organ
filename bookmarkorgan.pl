@@ -38,7 +38,16 @@ if ( not $options_flag ) {
     print_help();
 }
 
+my @plugin_subs;
+
 sub main {
+    for my $plugin ( sort glob './plugins/*.pl' ) {
+        require $plugin;
+        my ($plugin_sub_name) = $plugin =~ m{/([^/]+)[.]pl$ };
+        no strict;
+        push @plugin_subs, \&{$plugin_sub_name};
+        use strict;
+    }
     my $bookmark_db = DBI->connect(
         "dbi:SQLite:$bookmark_database_file",
         { RaiseError => 1, AutoCommit => 0 }
