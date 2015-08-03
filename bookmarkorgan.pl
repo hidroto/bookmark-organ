@@ -9,13 +9,16 @@ use version; our $VERSION = qv('0.0');
 
 use Readonly;
 Readonly my $DEFAULT_BOOKMARK_DATEBASE => 'bookmarks.db';
+Readonly my $EMPTY                     => q[];
 Readonly my $DESCRIPTION               => <<"END"
 organizes bookmarks.
 END
     ;
 
 use Getopt::Long;
+use DBI;
 use IO::Prompt;
+use Term::Complete;
 
 #option flags
 my $bookmark_database_file = $DEFAULT_BOOKMARK_DATEBASE;
@@ -34,7 +37,6 @@ my $options_flag = GetOptions(
 if ( not $options_flag ) {
     print_help();
 }
-use DBI;
 
 sub main {
     my $bookmark_db = DBI->connect(
@@ -43,13 +45,27 @@ sub main {
     );
     $bookmark_db->do('PRAGMA foreign_keys = ON');
 
-    my $QUIT           = qr[\A q(?:uit)? \z]ixms;
+    my $QUIT           = qr{\A q(?:uit)? \z}i;
     my %prompt_options = (
         -prompt => '>',
         -until  => $QUIT,
     );
+    my %command_hash = (
+    );
 MAIN_LOOP:
-    while ( my $cmd = prompt(%prompt_options) ) {
+    while ( my $input = prompt(%prompt_options) ) {
+        my ( $command, @args ) = split m{[ ]+}, $input;
+        if ( defined $command ) {
+            if ( exists $command_hash{$command} ) {
+                &{ $command_hash{$command} }(@args);
+            }
+            else {
+                print "$command is not a vaild command.\n" or croak;
+            }
+        }
+        else {
+            next MAIN_LOOP;
+        }
     }
 
     $bookmark_db->disconnect();
