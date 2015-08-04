@@ -10,6 +10,7 @@ use version; our $VERSION = qv('0.0');
 use Readonly;
 Readonly my $DEFAULT_BOOKMARK_DATEBASE => 'bookmarks.db';
 Readonly my $EMPTY                     => q[];
+Readonly my $INPUT_PIPE_MODE           => q[|-];
 Readonly my $DESCRIPTION               => <<"END"
 organizes bookmarks.
 END
@@ -77,7 +78,7 @@ my @plugin_subs;
 
 sub main {
     load_plugins();
-    my $bookmark_db = load_database();
+    my $bookmark_db = load_database($bookmark_database_file);
 
     my $QUIT = qr{\A q(?:uit)? \z}i;
     my %command_hash = (
@@ -145,10 +146,16 @@ sub load_plugins {
 }
 
 sub load_database {
-    my $db = DBI->connect(
-        "dbi:SQLite:$bookmark_database_file",
-        { RaiseError => 1, AutoCommit => 0 }
-    );
+    my $db_filename = shift;
+    if ( not -e $db_filename ) {
+        open my $fh, $INPUT_PIPE_MODE, qq{sqlite3 $db_filename}
+            or croak "could not create $db_filename";
+        print {$fh} $BOOKMARKS_SQL_TEMPLATE
+            or croak "could not create $db_filename from SQL_TEMPLATE";
+        close $fh or croak 'could not close sqlite filehandle';
+    }
+    my $db = DBI->connect( "dbi:SQLite:$db_filename",
+        { RaiseError => 1, AutoCommit => 0 } );
     $db->do('PRAGMA foreign_keys = ON');
     return $db;
 }
