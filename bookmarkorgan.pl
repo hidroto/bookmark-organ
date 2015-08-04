@@ -42,11 +42,7 @@ my @plugin_subs;
 
 sub main {
     load_plugins();
-    my $bookmark_db = DBI->connect(
-        "dbi:SQLite:$bookmark_database_file",
-        { RaiseError => 1, AutoCommit => 0 }
-    );
-    $bookmark_db->do('PRAGMA foreign_keys = ON');
+    my $bookmark_db = load_database();
 
     my $QUIT           = qr{\A q(?:uit)? \z}i;
     my %prompt_options = (
@@ -115,6 +111,15 @@ sub load_plugins {
         use strict;
     }
     return;
+}
+
+sub load_database {
+    my $db = DBI->connect(
+        "dbi:SQLite:$bookmark_database_file",
+        { RaiseError => 1, AutoCommit => 0 }
+    );
+    $db->do('PRAGMA foreign_keys = ON');
+    return $db;
 }
 
 sub print_help {
