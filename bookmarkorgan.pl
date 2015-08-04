@@ -44,16 +44,12 @@ sub main {
     load_plugins();
     my $bookmark_db = load_database();
 
-    my $QUIT           = qr{\A q(?:uit)? \z}i;
-    my %prompt_options = (
-        -prompt => '>',
-        -until  => $QUIT,
-    );
+    my $QUIT = qr{\A q(?:uit)? \z}i;
     my %command_hash = (
-        add    => \&add,
+        add => \&add,
     );
 MAIN_LOOP:
-    while ( my $input = prompt(%prompt_options) ) {
+    while ( my $input = prompt( '>', { -until => $QUIT } ) ) {
         my ( $command, @args ) = split m{[ ]+}, $input;
         if ( defined $command ) {
             if ( exists $command_hash{$command} ) {
