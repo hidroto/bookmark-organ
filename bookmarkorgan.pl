@@ -14,6 +14,41 @@ Readonly my $DESCRIPTION               => <<"END"
 organizes bookmarks.
 END
     ;
+Readonly my $BOOKMARKS_SQL_TEMPLATE => <<"END"
+PRAGMA foreign_keys=ON;
+BEGIN TRANSACTION;
+CREATE TABLE "tags" (
+	`TAG_id`	INTEGER NOT NULL,
+	`TAG_phrase`	TEXT NOT NULL UNIQUE,
+	PRIMARY KEY(TAG_id)
+);
+CREATE TABLE "LINK_bookmark_tag" (
+	`BKM_id`	INTEGER NOT NULL,
+	`TAG_id`	INTEGER NOT NULL,
+	FOREIGN KEY(`BKM_id`) REFERENCES bookmarks ( BKM_id ),
+	FOREIGN KEY(`TAG_id`) REFERENCES tags ( TAG_id )
+);
+CREATE TABLE "bookmarks" (
+	`BKM_id`	INTEGER NOT NULL,
+	`BKM_title`	TEXT NOT NULL,
+	`BKM_uri`	TEXT NOT NULL UNIQUE,
+	PRIMARY KEY(BKM_id)
+);
+CREATE TRIGGER delete_TAG delete on tags
+begin
+    delete from LINK_bookmark_tag where OLD.TAG_id == LINK_bookmark_tag.TAG_id;
+end;
+CREATE TRIGGER delete_BKM delete on bookmarks
+begin
+    delete from LINK_bookmark_tag where OLD.BKM_id == LINK_bookmark_tag.BKM_id;
+end;
+CREATE TRIGGER no_same_row_LINK before insert on LINK_bookmark_tag
+begin
+delete from LINK_bookmark_tag where NEW.BKM_id == LINK_bookmark_tag.BKM_id and NEW.TAG_id == LINK_bookmark_tag.TAG_id;
+end;
+COMMIT;
+END
+    ;
 
 use Getopt::Long;
 use DBI;
