@@ -54,7 +54,6 @@ END
 use Getopt::Long;
 use DBI;
 use IO::Prompt;
-use Term::Complete;
 
 #option flags
 my $bookmark_database_file = $DEFAULT_BOOKMARK_DATEBASE;
@@ -92,9 +91,11 @@ sub main {
     $bookmark_db = load_database($bookmark_database_file);
     prepare_sql_statements();
 
-    my $QUIT = qr{\A q(?:uit)? \z}i;
+    my $QUIT         = qr{\A q(?:uit)? \z}i;
     my %command_hash = (
-        add => \&add,
+        add  => \&add,
+        list => \&list,
+        tags => \&list_tags,
     );
 MAIN_LOOP:
     while ( my $input = prompt( '>', { -until => $QUIT } ) ) {
@@ -157,6 +158,21 @@ TEST_PLUGIN:
     }
     return;
 }
+
+sub list {
+    $select_bookmarks_by_title->execute();
+    while ( my @row = $select_bookmarks_by_title->fetchrow_array() ) {
+        print "$row[0]\n\t$row[1]\n" or carp 'could not print';
+    }
+    return;
+}
+
+sub list_tags {
+    $select_tags->execute();
+    my $tags_ref = $select_tags->fetchall_arrayref();
+    for ( @{$tags_ref} ) {
+        print $_->[0];
+        print "\n";
     }
     return;
 }
