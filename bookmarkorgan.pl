@@ -75,10 +75,22 @@ if ( not $options_flag ) {
 }
 
 my @plugin_subs;
+my $bookmark_db;
+
+#sql statments
+#these act like subroutines for the datebase.
+my $add_bookmark = q[INSERT INTO bookmarks (BKM_title,BKM_uri) values (?,?);];
+my $add_tag = q[INSERT INTO LINK_bookmark_tag (TAG_id,BKM_id) values (?,?);];
+my $get_bkm_id = q[SELECT BKM_id FROM bookmarks WHERE BKM_uri == ?;];
+my $get_tag_id = q[SELECT TAG_id FROM tags WHERE TAG_phrase==?;];
+my $insert_tag = q[INSERT INTO tags (TAG_phrase) values (?);];
+my $select_bookmarks_by_title = q[SELECT BKM_title,BKM_uri from bookmarks;];
+my $select_tags               = q[SELECT TAG_phrase from tags;];
 
 sub main {
     load_plugins();
-    my $bookmark_db = load_database($bookmark_database_file);
+    $bookmark_db = load_database($bookmark_database_file);
+    prepare_sql_statements();
 
     my $QUIT = qr{\A q(?:uit)? \z}i;
     my %command_hash = (
@@ -100,6 +112,7 @@ MAIN_LOOP:
         }
     }
 
+    finish_sql_statements();
     $bookmark_db->disconnect();
     return;
 }
@@ -107,7 +120,14 @@ MAIN_LOOP:
 sub add {
     my $uri = shift;
     if ( not defined $uri ) {
-        $uri = prompt( -prompt => 'uri >>' );
+        return;
+    }
+    $get_bkm_id->execute($uri);
+    if ( $get_bkm_id->fetchrow_array() ) {
+        print
+            "'$uri' already in database\nuse edit to change uri info or remove to remove it.\n"
+            or carp 'could not print';
+        return;
     }
     my $title;
     my $description;
@@ -115,22 +135,29 @@ sub add {
 TEST_PLUGIN:
     for my $plugin (@plugin_subs) {
         if ( &{$plugin}( $uri, 0 ) ) {    #check if plugin accpets this uri
-                #if so set $title,@tags,$description
-                #to the values returned by the plugin
+             #set $title,@tags,$description to the values returned by the plugin
             ( $title, $description, $tags_ref ) = &{$plugin}($uri);
             last TEST_PLUGIN;
         }
     }
 
-    #allow user to edit the plugins results
-    #
-    $title       = Complete( 'title >>',       [$title] );
-    $description = Complete( 'description >>', [$description] );
-    my $tag_prompt = $EMPTY;
-    if ( defined $tags_ref ) {
-        $tag_prompt = join ', ', @{$tags_ref};
+    $add_bookmark->execute( $title, $uri );
+    $get_bkm_id->execute($uri);
+    my $bkm_id = ( $get_bkm_id->fetchrow_array() )[0];
+
+    for my $tag ( @{$tags_ref} ) {
+        my $tag_id;
+        $get_tag_id->execute($tag);
+        if ( not $tag_id = ( $get_tag_id->fetchrow_array() )[0] ) {
+            $insert_tag->execute($tag);
+            $get_tag_id->execute($tag);
+            $tag_id = ( $get_tag_id->fetchrow_array() )[0];
+        }
+        $add_tag->execute( $tag_id, $bkm_id );
     }
-    @{$tags_ref} = split m{[ ]*,[ ]*}, Complete( 'tags >>', [$tag_prompt] );
+    return;
+}
+    }
     return;
 }
 
@@ -158,6 +185,29 @@ sub load_database {
         { RaiseError => 1, AutoCommit => 0 } );
     $db->do('PRAGMA foreign_keys = ON');
     return $db;
+}
+
+sub prepare_sql_statements {
+    $add_bookmark = $bookmark_db->prepare($add_bookmark);
+    $add_tag      = $bookmark_db->prepare($add_tag);
+    $get_bkm_id   = $bookmark_db->prepare($get_bkm_id);
+    $get_tag_id   = $bookmark_db->prepare($get_tag_id);
+    $insert_tag   = $bookmark_db->prepare($insert_tag);
+    $select_bookmarks_by_title
+        = $bookmark_db->prepare($select_bookmarks_by_title);
+    $select_tags = $bookmark_db->prepare($select_tags);
+    return;
+}
+
+sub finish_sql_statements {
+    $add_bookmark->finish();
+    $add_tag->finish();
+    $get_bkm_id->finish();
+    $get_tag_id->finish();
+    $insert_tag->finish();
+    $select_bookmarks_by_title->finish();
+    $select_tags->finish();
+    return;
 }
 
 sub print_help {
