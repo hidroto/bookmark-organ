@@ -163,12 +163,15 @@ TEST_PLUGIN:
     if ( not $plugin_fits ) {
         return;
     }
+    chomp $title;
+    chomp $uri;
 
     $add_bookmark->execute( $title, $uri );
     $get_bkm_id->execute($uri);
     my $bkm_id = ( $get_bkm_id->fetchrow_array() )[0];
 
     for my $tag ( @{$tags_ref} ) {
+        chomp $tag;
         my $tag_id;
         $get_tag_id->execute($tag);
         if ( not $tag_id = ( $get_tag_id->fetchrow_array() )[0] ) {
