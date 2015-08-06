@@ -91,21 +91,32 @@ sub main {
     $bookmark_db = load_database($bookmark_database_file);
     prepare_sql_statements();
 
-    my $QUIT         = qr{\A q(?:uit)? \z}i;
-    my %command_hash = (
-        add  => \&add,
-        list => \&list,
-        tags => \&list_tags,
+    my $QUIT = qr{\A q(?:uit)? \z}i;
+    my %command_hash;
+    %command_hash = (
+        add    => [ \&add, 'adds a uri to the bookmarks database' ],
+        list => [ \&list,      'list all the bookmarks by title and uri' ],
+        tags => [ \&list_tags, 'list all of the tags in the datebase' ],
+        help => [
+            sub {
+                for ( sort keys %command_hash ) {
+                    print $_, "\t", $command_hash{$_}->[1], "\n";
+                }
+                return;
+            },
+            'print help of the commands'
+        ],
     );
 MAIN_LOOP:
     while ( my $input = prompt( '>', { -until => $QUIT } ) ) {
         my ( $command, @args ) = split m{[ ]+}, $input;
         if ( defined $command ) {
             if ( exists $command_hash{$command} ) {
-                &{ $command_hash{$command} }(@args);
+                &{ $command_hash{$command}->[0] }(@args);
             }
             else {
                 print "$command is not a vaild command.\n" or croak;
+                &{ $command_hash{help}->[0] };
             }
         }
         else {
