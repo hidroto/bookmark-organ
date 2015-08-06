@@ -161,7 +161,19 @@ TEST_PLUGIN:
         }
     }
     if ( not $plugin_fits ) {
-        return;
+        $title       = prompt('title>');
+        $description = prompt('description>');
+        while ( my $tag_input = prompt( 'tag>', { -until => '' } ) ) {
+            push @{$tags_ref}, $tag_input;
+        }
+        print $title,       "\n";
+        print $description, "\n";
+        for ( @{$tags_ref} ) {
+            print qq["$_"\n];
+        }
+        if ( not prompt( 'is this correct [Y/N]>', '-yes_no' ) ) {
+            return;
+        }
     }
     chomp $title;
     chomp $uri;
