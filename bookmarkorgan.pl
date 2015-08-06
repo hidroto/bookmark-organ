@@ -142,6 +142,7 @@ sub add {
     if ( not defined $uri ) {
         return;
     }
+    chomp $uri;
     $get_bkm_id->execute($uri);
     if ( $get_bkm_id->fetchrow_array() ) {
         print
