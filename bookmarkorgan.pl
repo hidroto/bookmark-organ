@@ -4,6 +4,7 @@ use warnings;
 use Carp;
 use English '-no_match_vars';
 use re '/xms';
+use autodie;
 
 use version; our $VERSION = qv('0.0');
 
