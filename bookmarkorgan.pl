@@ -10,6 +10,7 @@ use version; our $VERSION = qv('0.0');
 use Readonly;
 Readonly my $DEFAULT_BOOKMARK_DATEBASE => 'bookmarks.db';
 Readonly my $EMPTY                     => q[];
+Readonly my $DOT                       => q[.];
 Readonly my $INPUT_PIPE_MODE           => q[|-];
 Readonly my $DESCRIPTION               => <<"END"
 organizes bookmarks.
@@ -95,6 +96,10 @@ sub main {
     my %command_hash;
     %command_hash = (
         add    => [ \&add, 'adds a uri to the bookmarks database' ],
+        import => [
+            \&import_from_file,
+            'adds all of the uris in the listed file to the datebase'
+        ],
         list => [ \&list,      'list all the bookmarks by title and uri' ],
         tags => [ \&list_tags, 'list all of the tags in the datebase' ],
         help => [
@@ -175,6 +180,21 @@ sub list {
     while ( my @row = $select_bookmarks_by_title->fetchrow_array() ) {
         print "$row[0]\n\t$row[1]\n" or carp 'could not print';
     }
+    return;
+}
+
+sub import_from_file {
+    my $filename = shift;
+    if ( not -e $filename ) {
+        return 0;
+    }
+    open my $uri_file_handle, '<', $filename;
+    while ( my $uri = <$uri_file_handle> ) {
+        add($uri);
+        print $DOT;
+    }
+    print "\n";
+    close $uri_file_handle;
     return;
 }
 
