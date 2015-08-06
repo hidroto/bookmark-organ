@@ -149,13 +149,18 @@ sub add {
     my $title;
     my $description;
     my $tags_ref;
+    my $plugin_fits;
 TEST_PLUGIN:
     for my $plugin (@plugin_subs) {
-        if ( &{$plugin}( $uri, 0 ) ) {    #check if plugin accpets this uri
+        if ( $plugin_fits = &{$plugin}( $uri, 0 ) )
+        {    #check if plugin accpets this uri
              #set $title,@tags,$description to the values returned by the plugin
             ( $title, $description, $tags_ref ) = &{$plugin}($uri);
             last TEST_PLUGIN;
         }
+    }
+    if ( not $plugin_fits ) {
+        return;
     }
 
     $add_bookmark->execute( $title, $uri );
