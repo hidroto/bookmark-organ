@@ -77,6 +77,7 @@ if ( not $options_flag ) {
 
 my @plugin_subs;
 my $bookmark_db;
+my %enviroment = ( interactive_add => 0, );
 
 #sql statments
 #these act like subroutines for the datebase.
@@ -103,6 +104,7 @@ sub main {
         ],
         list => [ \&list,      'list all the bookmarks by title and uri' ],
         tags => [ \&list_tags, 'list all of the tags in the datebase' ],
+        set  => [ \&set_enviroment, 'set or list enviroment vars' ],
         help => [
             sub {
                 for ( sort keys %command_hash ) {
@@ -200,6 +202,24 @@ sub list {
     $select_bookmarks_by_title->execute();
     while ( my @row = $select_bookmarks_by_title->fetchrow_array() ) {
         print "$row[0]\n\t$row[1]\n" or carp 'could not print';
+    }
+    return;
+}
+
+sub set_enviroment {
+    my $name  = shift;
+    my $value = shift;
+    if ( not defined $name ) {
+        for ( sort keys %enviroment ) {
+            print "$_=>$enviroment{$_}\n";
+        }
+        return;
+    }
+    if ( defined $value ) {
+        if ( exists $enviroment{$name} ) {
+            $enviroment{$name} = $value;
+            return;
+        }
     }
     return;
 }
