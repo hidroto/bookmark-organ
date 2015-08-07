@@ -156,15 +156,17 @@ TEST_PLUGIN:
     }
     if ( not $plugin_fits ) {
         if ( $enviroment{interactive_add} ) {
-            if ( not prompt( 'add? [Y/N]>', '-yes_no','-1' ) ) {
+            if ( not prompt( 'add? [Y/N]>', '-yes_no', '-1' ) ) {
                 return;
             }
-            $title       = prompt('title>');
+            $title = prompt('title>');
+
             #$description = prompt('description>');
             while ( my $tag_input = prompt( 'tag>', { -until => $EMPTY } ) ) {
                 push @{$tags_ref}, $tag_input;
             }
-            print $title,       "\n";
+            print $title, "\n";
+
             #print $description, "\n";
             for ( @{$tags_ref} ) {
                 print qq["$_"\n];
@@ -253,7 +255,9 @@ sub load_plugins {
     for my $plugin ( sort glob './plugins/*.pl' ) {
         require $plugin;
         my ($plugin_sub_name) = $plugin =~ m{/([^/]+)[.]pl$ };
-        no strict 'refs';
+        no strict 'refs';    #this is realy bad form
+                             #but i dont know how to implement
+                             #this right just yet
         push @plugin_subs, \&{$plugin_sub_name};
         use strict;
     }
