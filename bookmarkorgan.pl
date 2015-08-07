@@ -12,46 +12,37 @@ use Readonly;
 Readonly my $DEFAULT_BOOKMARK_DATEBASE => 'bookmarks.db';
 Readonly my $EMPTY                     => q[];
 Readonly my $DOT                       => q[.];
-Readonly my $INPUT_PIPE_MODE           => q[|-];
 Readonly my $DESCRIPTION               => <<"END"
 organizes bookmarks.
 END
     ;
-Readonly my $BOOKMARKS_SQL_TEMPLATE => <<"END"
-PRAGMA foreign_keys=ON;
-BEGIN TRANSACTION;
-CREATE TABLE "tags" (
-	`TAG_id`	INTEGER NOT NULL,
-	`TAG_phrase`	TEXT NOT NULL UNIQUE,
-	PRIMARY KEY(TAG_id)
+Readonly my @BOOKMARKS_SQL_TEMPLATE => (
+    'BEGIN TRANSACTION;',
+    'CREATE TABLE "tags" '
+        . '( `TAG_id` INTEGER NOT NULL,'
+        . ' `TAG_phrase` TEXT NOT NULL UNIQUE,'
+        . ' PRIMARY KEY(TAG_id)' . ');',
+    'CREATE TABLE "LINK_bookmark_tag" '
+        . '( `BKM_id` INTEGER NOT NULL,'
+        . ' `TAG_id` INTEGER NOT NULL,'
+        . ' FOREIGN KEY(`BKM_id`) REFERENCES bookmarks ( BKM_id ),'
+        . ' FOREIGN KEY(`TAG_id`) REFERENCES tags ( TAG_id )' . ');',
+    'CREATE TABLE "bookmarks" '
+        . '( `BKM_id` INTEGER NOT NULL,'
+        . ' `BKM_title` TEXT NOT NULL,'
+        . ' `BKM_uri` TEXT NOT NULL UNIQUE,'
+        . ' PRIMARY KEY(BKM_id)' . ');',
+    'CREATE TRIGGER delete_TAG delete on tags'
+        . ' begin delete from LINK_bookmark_tag where OLD.TAG_id == LINK_bookmark_tag.TAG_id;'
+        . ' end;',
+    'CREATE TRIGGER delete_BKM delete on bookmarks'
+        . ' begin delete from LINK_bookmark_tag where OLD.BKM_id == LINK_bookmark_tag.BKM_id;'
+        . ' end;',
+    'CREATE TRIGGER no_same_row_LINK before insert on LINK_bookmark_tag'
+        . ' begin delete from LINK_bookmark_tag where NEW.BKM_id == LINK_bookmark_tag.BKM_id and NEW.TAG_id == LINK_bookmark_tag.TAG_id;'
+        . ' end;',
+    'COMMIT;',
 );
-CREATE TABLE "LINK_bookmark_tag" (
-	`BKM_id`	INTEGER NOT NULL,
-	`TAG_id`	INTEGER NOT NULL,
-	FOREIGN KEY(`BKM_id`) REFERENCES bookmarks ( BKM_id ),
-	FOREIGN KEY(`TAG_id`) REFERENCES tags ( TAG_id )
-);
-CREATE TABLE "bookmarks" (
-	`BKM_id`	INTEGER NOT NULL,
-	`BKM_title`	TEXT NOT NULL,
-	`BKM_uri`	TEXT NOT NULL UNIQUE,
-	PRIMARY KEY(BKM_id)
-);
-CREATE TRIGGER delete_TAG delete on tags
-begin
-    delete from LINK_bookmark_tag where OLD.TAG_id == LINK_bookmark_tag.TAG_id;
-end;
-CREATE TRIGGER delete_BKM delete on bookmarks
-begin
-    delete from LINK_bookmark_tag where OLD.BKM_id == LINK_bookmark_tag.BKM_id;
-end;
-CREATE TRIGGER no_same_row_LINK before insert on LINK_bookmark_tag
-begin
-delete from LINK_bookmark_tag where NEW.BKM_id == LINK_bookmark_tag.BKM_id and NEW.TAG_id == LINK_bookmark_tag.TAG_id;
-end;
-COMMIT;
-END
-    ;
 
 use Getopt::Long;
 use DBI;
@@ -271,15 +262,18 @@ sub load_plugins {
 
 sub load_database {
     my $db_filename = shift;
+    my $db;
     if ( not -e $db_filename ) {
-        open my $fh, $INPUT_PIPE_MODE, qq{sqlite3 $db_filename}
-            or croak "could not create $db_filename";
-        print {$fh} $BOOKMARKS_SQL_TEMPLATE
-            or croak "could not create $db_filename from SQL_TEMPLATE";
-        close $fh or croak 'could not close sqlite filehandle';
+        $db = DBI->connect( "dbi:SQLite:$db_filename",
+            { RaiseError => 1, AutoCommit => 0 } );
+        for (@BOOKMARKS_SQL_TEMPLATE) {
+            $db->do($_);
+        }
     }
-    my $db = DBI->connect( "dbi:SQLite:$db_filename",
-        { RaiseError => 1, AutoCommit => 0 } );
+    else {
+        $db = DBI->connect( "dbi:SQLite:$db_filename",
+            { RaiseError => 1, AutoCommit => 0 } );
+    }
     $db->do('PRAGMA foreign_keys = ON');
     return $db;
 }
