@@ -1,0 +1,14 @@
+--block-brace-tightness=1
+--brace-tightness=1
+--closing-token-indentation=0
+--continuation-indentation=4
+--indent-columns=4
+--maximum-line-length=78
+--no-outdent-long-quotes
+--no-space-for-semicolon
+--paren-tightness=1
+--square-bracket-tightness=1
+--standard-error-output
+--standard-output
+--vertical-tightness=2
+--want-break-before="% + - * / x != == >= <= =~ !~ < > | & = **= += *= &= <<= &&= -= /= |= >>= ||= //= .= %= ^= x="

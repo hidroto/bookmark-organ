@@ -1,0 +1,4 @@
+severity  = brutal
+
+[CodeLayout::RequireTidyCode]
+perltidyrc = ./.perltidyrc

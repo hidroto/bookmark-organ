@@ -1,0 +1,5 @@
+most of the guidelines in this project are based on
+'Perl Best Practices' by Damian Conway
+this is enforecd by perlcritic and perltidy
+the rc of both programs are supplied with the repo.
+only change them if you have a good reason.
